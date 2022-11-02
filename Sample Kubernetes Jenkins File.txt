@@ -1,0 +1,62 @@
+pipeline {
+    agent { label 'Kubernetes' }
+    stages {
+        stage('Deploy to Kubernetes') {
+            steps {
+            script {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'kubeconfig')]) {
+                    sh 'cd /var/lib/jenkins'
+
+                    }
+                }
+            }
+        }
+    }
+}
+
+pipeline {
+    agent { label 'Kubernetes' }
+    environment {
+        uimage = 'redis'
+    }
+    stages {
+        stage('Deploy to Kubernetes') {
+            steps {
+            script {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'kubeconfig')]) {
+                    sh 'kubectl create deploy test --image="$uimage"'
+                    
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+pipeline {
+    environment {
+        uimage = "redis"
+    }
+    agent { label 'Kubernetes' }
+    stages {
+        stage('Deploy to Docker') {
+            steps {
+                script {
+                    sh 'docker rmi $(docker images -f dangling=true -q)'
+                    sh 'docker build -t myimage:"$BUILD_ID" /var/lib/jenkins/'
+                }
+            }
+        }
+        stage('Deploy to Kubernetes') {
+            steps {
+            script {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'kubeconfig')]) {
+                    sh 'sed -i "s/<TAG>/${BUILD_NUMBER}/" /var/lib/jenkins/deploy.yaml'
+                    sh 'kubectl create -f /var/lib/jenkins/deploy.yaml'
+                    }
+                }
+            }
+        }
+    }
+}

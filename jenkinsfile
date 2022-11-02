@@ -1,0 +1,56 @@
+pipeline{
+    environment {
+        registry = "713974980361.dkr.ecr.ap-south-1.amazonaws.com/maventestproject"
+        registryurl = "https://713974980361.dkr.ecr.ap-south-1.amazonaws.com/maventestproject"
+        registrycredential = "ecr:ap-south-1:jenkins-ecr-login"
+        dockerImage = ''
+    }
+    agent any
+    stages{
+            stage("Checkout the Project") {
+            steps{
+                git branch: 'master', url: 'https://github.com/arnabd24/springboot-maven-micro.git'
+                }
+            }
+            stage("Sonar Quality Check") {
+                steps {
+                    withSonarQubeEnv(credentialsId: 'jenkins-sonar-token', installationName: 'Sonarqube-Server') {
+                    withMaven(maven:'Maven-3.8.5') {
+                    sh "mvn clean package sonar:sonar"
+                           }
+                    }
+                }
+            }
+            stage("Check Quality gate status") {
+                steps {
+                    timeout(time: 1, unit: 'HOURS') {
+                        waitForQualityGate abortPipeline: true
+                    }
+                }
+            }
+            stage("Build the docker image") {
+                steps {
+                    script {
+                    app = docker.build registry
+                    }
+                }
+            }
+            stage("Deploy to Amazon ECR") {
+                steps {
+                    script {
+                        docker.withRegistry( registryurl , registrycredential) {
+                        app.push("${env.BUILD_NUMBER}")
+                    }
+                }
+            }
+        }
+    }
+    // post {
+    //     success {
+    //         mail bcc: "", body: "project ${env.JOB_NAME} with build ID ${env.BUILD_ID}  was successful" , from: "dasarn94@gmail.com" , replyTo: "" , subject: "Pipeline was Successful" , to: "dasarn94@gmail.com"
+    //     }
+    //     failure {
+    //         mail bcc: "", body: "project ${env.JOB_NAME} with build ID ${env.BUILD_ID}  was unsuccessful" , from: "dasarn94@gmail.com" , replyTo: "" , subject: "Pipeline failed" , to: "dasarn94@gmail.com"
+    //     }
+    // }
+}

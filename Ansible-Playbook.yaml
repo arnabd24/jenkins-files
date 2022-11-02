@@ -1,0 +1,8 @@
+- hosts: devserver
+  tasks:
+    - name: Estalibsh a Connection to ECR
+      shell: aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 713974980361.dkr.ecr.ap-south-1.amazonaws.com
+    - name: Pull the Image to the server
+      shell: docker pull 713974980361.dkr.ecr.ap-south-1.amazonaws.com/maventestproject:32
+    - name: Deploy Springboot container
+      shell: docker run --name=springbootcontainer -p 8080:8080 --detach 713974980361.dkr.ecr.ap-south-1.amazonaws.com/maventestproject:32
