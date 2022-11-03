@@ -1,0 +1,14 @@
+pipeline {
+    agent {
+        label 'kube'
+    }
+    stages {
+        stage("Just checking my node") {
+            steps {
+                script {
+                    sh 'kubectl get nodes'
+                }
+            }
+        }
+    }
+}
